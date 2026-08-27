@@ -13,6 +13,7 @@ import { isKnownSelfIp } from '../lib/selfips.js';
 import { put } from '../lib/blob.js';
 import { eventPath } from '../lib/paths.js';
 import { dayOf, sentAtOf, isValidToken } from '../lib/token.js';
+import { fingerprint } from '../lib/fingerprint.js';
 import { clientIp } from '../lib/http.js';
 
 const GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64');
@@ -60,7 +61,9 @@ async function log(req) {
     sentAt: sentAtOf(token).toISOString(), at, userAgent, ip, isSelf,
   });
 
+  // Who fetched it, as a one-way fingerprint — the raw address is never stored.
+  const fp = fingerprint({ ip, userAgent });
   const nonce = Math.abs((Date.now() ^ (userAgent.length * 2654435761)) % 0xffffff).toString(36);
-  const path = eventPath({ day: dayOf(token), token, at, kind: 'open', classification, nonce });
-  await put(path, { token, at, kind: 'open', classification, userAgent, ipPrefix: ip.split('.').slice(0, 2).join('.') });
+  const path = eventPath({ day: dayOf(token), token, at, kind: 'open', classification, fingerprint: fp, nonce });
+  await put(path, { token, at, kind: 'open', classification, fingerprint: fp, deviceHint: userAgent.slice(0, 120) });
 }

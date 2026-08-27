@@ -33,12 +33,29 @@ test('a very long subject is truncated, not dropped', () => {
 
 test('an event round-trips, so listing a day needs no content fetches', () => {
   const p = eventPath({ day: '2026-08-27', token: '20260827T173455-abcdefghijkm',
-                        at: '2026-08-27T18:04:12.123Z', kind: 'open', classification: 'human', nonce: 'q7' });
+                        at: '2026-08-27T18:04:12.123Z', kind: 'open', classification: 'human',
+                        fingerprint: 'a1b2c3d4e5', nonce: 'q7' });
   const back = parseEventPath(p);
   assert.equal(back.token, '20260827T173455-abcdefghijkm');
   assert.equal(back.kind, 'open');
   assert.equal(back.classification, 'human');
   assert.equal(back.at, '2026-08-27T18:04:12Z');
+  assert.equal(back.fingerprint, 'a1b2c3d4e5');
+});
+
+test('events written before per-reader tracking still parse, rather than vanishing', () => {
+  const legacy = 'ev/2026-08-27/20260827T173455-abcdefghijkm/20260827T180412123Z__open__human__q7.json';
+  const back = parseEventPath(legacy);
+  assert.ok(back, 'a day of history must not disappear when the format grows');
+  assert.equal(back.classification, 'human');
+  assert.equal(back.fingerprint, null);
+});
+
+test('the shared Gmail bucket survives the pathname', () => {
+  const p = eventPath({ day: '2026-08-27', token: '20260827T173455-abcdefghijkm',
+                        at: '2026-08-27T18:04:12.000Z', kind: 'open', classification: 'human',
+                        fingerprint: 'gmail-proxy', nonce: 'z1' });
+  assert.equal(parseEventPath(p).fingerprint, 'gmail-proxy');
 });
 
 test('every classification survives the pathname, hyphen included', () => {

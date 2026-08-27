@@ -9,6 +9,7 @@ import { isKnownSelfIp } from '../lib/selfips.js';
 import { put } from '../lib/blob.js';
 import { eventPath, dec } from '../lib/paths.js';
 import { dayOf, sentAtOf, isValidToken } from '../lib/token.js';
+import { fingerprint } from '../lib/fingerprint.js';
 import { clientIp } from '../lib/http.js';
 
 const FALLBACK = 'https://www.danielkelleghan.com/';
@@ -48,8 +49,9 @@ async function logClick({ req, token, tag, destination }) {
     const classification = classify({
       sentAt: sentAtOf(token).toISOString(), at, userAgent, ip, isSelf,
     });
+    const fp = fingerprint({ ip, userAgent });
     const nonce = Math.abs((Date.now() ^ destination.length) % 0xffffff).toString(36);
-    await put(eventPath({ day: dayOf(token), token, at, kind: 'click', classification, nonce }),
-              { token, at, kind: 'click', classification, destination, userAgent });
+    await put(eventPath({ day: dayOf(token), token, at, kind: 'click', classification, fingerprint: fp, nonce }),
+              { token, at, kind: 'click', classification, fingerprint: fp, destination, deviceHint: userAgent.slice(0, 120) });
   }
 }
