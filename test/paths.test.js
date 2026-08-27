@@ -7,7 +7,21 @@ test('a message round-trips through its pathname', () => {
                           recipient: 'Kate.Lee@ventana.com', subject: 'Re: Shoot dates — June?', source: 'mailmate' });
   const back = parseMessagePath(p);
   assert.deepEqual(back, { day: '2026-08-27', token: '20260827T173455-abcdefghijkm',
-                           recipient: 'Kate.Lee@ventana.com', subject: 'Re: Shoot dates — June?', source: 'mailmate' });
+                           recipient: 'Kate.Lee@ventana.com', subject: 'Re: Shoot dates — June?',
+                           source: 'mailmate', recipientCount: 0 });
+});
+
+test('the audience size round-trips, since attribution refuses to learn without it', () => {
+  const p = messagePath({ day: '2026-08-27', token: '20260827T173455-abcdefghijkm',
+                          recipient: 'a@b.com', subject: 'Hi', source: 'mailmate', recipientCount: 9 });
+  assert.equal(parseMessagePath(p).recipientCount, 9);
+});
+
+test('a message registered before audience size existed still parses, as count 0', () => {
+  const legacy = 'msg/2026-08-27/20260827T173455-abcdefghijkm/YUBiLmNvbQ/SGk/bWFpbG1hdGU.json';
+  const back = parseMessagePath(legacy);
+  assert.ok(back);
+  assert.equal(back.recipientCount, 0, 'unknown audience must never be mistaken for one-to-one');
 });
 
 test('a subject full of punctuation and emoji survives', () => {

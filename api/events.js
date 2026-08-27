@@ -5,7 +5,25 @@
 
 import { list } from '../lib/blob.js';
 import { parseMessagePath, parseEventPath } from '../lib/paths.js';
+import { annotate } from '../lib/readers.js';
 import { authorized } from '../lib/http.js';
+
+// Two caches, both living in the warm serverless instance.
+//
+// MESSAGE lists for past days are immutable: a registration is always written under the day in
+// its own token, so once a day is over no new msg/ blob can appear under it. Listing them again
+// on every request was most of the 550-770ms this endpoint took.
+//
+// EVENT lists are NOT cacheable that way, and it is worth writing down why: an event is filed
+// under the TOKEN's day, so a message sent yesterday and opened today writes into yesterday's
+// folder. Past event days keep changing, so they are always re-listed.
+const messageDayCache = new Map();   // day → parsed message records
+const RESPONSE_TTL_MS = 15_000;
+let lastResponse = { key: '', at: 0, body: null };
+
+function isPastDay(day) {
+  return day < new Date().toISOString().slice(0, 10);
+}
 
 export default async function handler(req, res) {
   if (!authorized(req)) return res.status(401).json({ error: 'unauthorized' });
@@ -19,16 +37,27 @@ export default async function handler(req, res) {
     days.push(d.toISOString().slice(0, 10));
   }
 
+  const cacheKey = days.join(',');
+  if (lastResponse.key === cacheKey && Date.now() - lastResponse.at < RESPONSE_TTL_MS) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json(lastResponse.body);
+  }
+
   try {
     const byToken = new Map();
 
-    const messageLists = await Promise.all(days.map((day) => list(`msg/${day}/`).catch(() => [])));
-    for (const blobs of messageLists) {
-      for (const b of blobs) {
-        const m = parseMessagePath(b.pathname);
-        if (!m) continue;
-        byToken.set(m.token, { ...m, sentAt: b.uploadedAt, events: [] });
-      }
+    const messageLists = await Promise.all(days.map(async (day) => {
+      const cached = messageDayCache.get(day);
+      if (cached) return cached;
+      const blobs = await list(`msg/${day}/`).catch(() => []);
+      const parsed = blobs
+        .map((b) => { const m = parseMessagePath(b.pathname); return m ? { ...m, sentAt: b.uploadedAt } : null; })
+        .filter(Boolean);
+      if (isPastDay(day)) messageDayCache.set(day, parsed);   // a finished day cannot gain messages
+      return parsed;
+    }));
+    for (const records of messageLists) {
+      for (const m of records) byToken.set(m.token, { ...m, events: [] });
     }
 
     const eventLists = await Promise.all(days.map((day) => list(`ev/${day}/`).catch(() => [])));
@@ -41,9 +70,13 @@ export default async function handler(req, res) {
       }
     }
 
-    const messages = [...byToken.values()];
+    // Attribution is computed HERE, once, so the Mac app and the Chrome extension can never
+    // disagree about who opened something.
+    const messages = annotate([...byToken.values()]);
+    const body = { since: sinceDate.toISOString(), count: messages.length, messages };
+    lastResponse = { key: cacheKey, at: Date.now(), body };
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json({ since: sinceDate.toISOString(), count: messages.length, messages });
+    return res.status(200).json(body);
   } catch (err) {
     console.error('[events] failed', err);
     return res.status(503).json({ error: 'store unavailable' });

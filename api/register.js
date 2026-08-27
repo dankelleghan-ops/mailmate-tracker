@@ -39,6 +39,10 @@ export default async function handler(req, res) {
       const record = {
         token, day,
         recipient: item.recipient || '',
+        // The FULL audience, when the client knows it. Attribution refuses to learn without
+        // this — see lib/readers.js. Stored in the blob body, not the pathname: it can be long,
+        // and only the learning pass needs it.
+        recipients: Array.isArray(item.recipients) ? item.recipients : null,
         subject: item.subject || '',
         source: item.source || 'unknown',
         registeredAt: new Date().toISOString(),
@@ -47,8 +51,12 @@ export default async function handler(req, res) {
       };
       // Written once, never updated. Blob is eventually consistent, so nothing downstream is
       // allowed to depend on reading this back promptly — the pathname carries what matters.
+      const audience = Array.isArray(item.recipients)
+        ? new Set(item.recipients.flatMap((r) => String(r).split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)))
+        : null;
       await put(messagePath({ day, token, recipient: record.recipient,
-                             subject: record.subject, source: record.source }), record);
+                             subject: record.subject, source: record.source,
+                             recipientCount: audience ? audience.size : 0 }), record);
       // `tag` is returned so callers can also build tracked LINK urls, which is how outreach
       // is tracked: the Gmail connector strips externally-hosted images (re-confirmed
       // 2026-08-27) but leaves hrefs alone.
