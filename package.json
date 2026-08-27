@@ -1,0 +1,10 @@
+{
+  "name": "mailmate-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Open- and click-tracking endpoint for Daniel Kelleghan's email. Serves the pixel, classifies the fetch, appends the event to a private GitHub repo.",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}
