@@ -49,7 +49,10 @@ export default async function handler(req, res) {
       // allowed to depend on reading this back promptly — the pathname carries what matters.
       await put(messagePath({ day, token, recipient: record.recipient,
                              subject: record.subject, source: record.source }), record);
-      return { token, pixel: pixelURL(token, tag) };
+      // `tag` is returned so callers can also build tracked LINK urls, which is how outreach
+      // is tracked: the Gmail connector strips externally-hosted images (re-confirmed
+      // 2026-08-27) but leaves hrefs alone.
+      return { token, tag, pixel: pixelURL(token, tag), linkBase: `${BASE}/l/${token}.${tag}` };
     }));
     return res.status(200).json(isBatch ? { registered: out } : out[0]);
   } catch (err) {
