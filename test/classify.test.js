@@ -6,8 +6,8 @@ const sentAt = '2026-08-27T10:00:00Z';
 const later  = '2026-08-27T13:30:00Z';
 const normal = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15 Safari/604.1';
 
-test('a fetch from the IP that registered the message is Daniel himself, never an open', () => {
-  assert.equal(classify({ sentAt, at: later, userAgent: normal, ip: '73.9.1.2', registerIp: '73.9.1.2' }), 'self');
+test('a fetch carrying Daniel\'s own signed tag is him, never an open', () => {
+  assert.equal(classify({ sentAt, at: later, userAgent: normal, ip: '73.9.1.2', isSelf: true }), 'self');
 });
 
 test('an open within 60s of send is a scanner, not a person', () => {
@@ -39,5 +39,5 @@ test('no user agent at all is unknown, not human', () => {
 });
 
 test('self beats every other rule, including the 60-second scanner rule', () => {
-  assert.equal(classify({ sentAt, at: '2026-08-27T10:00:05Z', userAgent: normal, ip: '73.9.1.2', registerIp: '73.9.1.2' }), 'self');
+  assert.equal(classify({ sentAt, at: '2026-08-27T10:00:05Z', userAgent: normal, ip: '73.9.1.2', isSelf: true }), 'self');
 });

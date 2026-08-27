@@ -1,6 +1,8 @@
 {
   "rewrites": [
     { "source": "/p/:token", "destination": "/api/pixel?token=:token" },
-    { "source": "/l/:token/:linkId", "destination": "/api/click?token=:token&linkId=:linkId" }
+    { "source": "/l/:token/:dest", "destination": "/api/click?token=:token&dest=:dest" },
+    { "source": "/register", "destination": "/api/register" },
+    { "source": "/events", "destination": "/api/events" }
   ]
 }
