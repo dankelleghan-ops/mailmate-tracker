@@ -90,3 +90,15 @@ test('base64url encoding leaves nothing that breaks a URL path', () => {
   assert.equal(round, 'a/b+c=d?e#f');
   assert.ok(!/[/+=]/.test(enc('a/b+c=d')));
 });
+
+test('an empty recipient still occupies its path segment', () => {
+  // '' collapsed to a double slash, which the store folds away — a recipient-less
+  // registration came back with its source sitting in the subject position.
+  const p = messagePath({ day: '2026-08-29', token: '20260829T154739-ub3tLWbrxdpK',
+                          recipient: '', subject: 'compare', source: 'apple-mail', recipientCount: 0 });
+  assert.ok(!p.includes('//'), 'no collapsing double slash');
+  const back = parseMessagePath(p);
+  assert.equal(back.recipient, '');
+  assert.equal(back.subject, 'compare');
+  assert.equal(back.source, 'apple-mail');
+});
