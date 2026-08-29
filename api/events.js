@@ -58,7 +58,21 @@ export default async function handler(req, res) {
       return parsed;
     }));
     for (const records of messageLists) {
-      for (const m of records) byToken.set(m.token, { ...m, events: [] });
+      for (const m of records) {
+        // The same token can carry several records: an amend (subject registered before it was
+        // fully typed, corrected once it settled) writes a second blob. Keep whichever record
+        // knows more — a non-empty subject beats an empty one, then a larger audience.
+        const prev = byToken.get(m.token);
+        if (prev) {
+          const better =
+            (m.subject && !prev.subject) ? m :
+            (!m.subject && prev.subject) ? prev :
+            (m.recipientCount || 0) >= (prev.recipientCount || 0) ? m : prev;
+          byToken.set(m.token, { ...better, events: [] });
+        } else {
+          byToken.set(m.token, { ...m, events: [] });
+        }
+      }
     }
 
     const eventLists = await Promise.all(days.map((day) => list(`ev/${day}/`).catch(() => [])));

@@ -34,7 +34,12 @@ export default async function handler(req, res) {
     await rememberSelfIp(ip).catch(() => {});
 
     const out = await Promise.all(items.map(async (item) => {
-      const token = newToken();
+      // A caller may supply the token to AMEND an existing registration — the Mac watcher
+      // stamps a hand-written email the moment the cursor reaches the body, which can be
+      // before the subject exists, and re-registers once the subject settles. The amended
+      // record lands as a second blob under the same token; /events prefers the completer one.
+      const supplied = typeof item.token === 'string' && /^\d{8}T\d{6}-[A-Za-z2-9]{12}$/.test(item.token);
+      const token = supplied ? item.token : newToken();
       const day = dayOf(token);
       const record = {
         token, day,
