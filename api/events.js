@@ -6,6 +6,7 @@
 import { list } from '../lib/blob.js';
 import { parseMessagePath, parseEventPath } from '../lib/paths.js';
 import { annotate } from '../lib/readers.js';
+import { demoteQuotedOpens } from '../lib/quoted-opens.js';
 import { authorized } from '../lib/http.js';
 
 // Two caches, both living in the warm serverless instance.
@@ -72,7 +73,9 @@ export default async function handler(req, res) {
 
     // Attribution is computed HERE, once, so the Mac app and the Chrome extension can never
     // disagree about who opened something.
-    const messages = annotate([...byToken.values()]);
+    // Demote quoted pixels BEFORE attribution, so a reader who only ever appears via a quoted
+    // pixel is never learned as that older message's reader.
+    const messages = annotate(demoteQuotedOpens([...byToken.values()]));
     const body = { since: sinceDate.toISOString(), count: messages.length, messages };
     lastResponse = { key: cacheKey, at: Date.now(), body };
     res.setHeader('Cache-Control', 'no-store');
