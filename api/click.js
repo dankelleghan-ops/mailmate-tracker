@@ -9,10 +9,13 @@ import { isKnownSelfIp } from '../lib/selfips.js';
 import { put } from '../lib/blob.js';
 import { eventPath, dec } from '../lib/paths.js';
 import { dayOf, sentAtOf, isValidToken } from '../lib/token.js';
-import { fingerprint } from '../lib/fingerprint.js';
+import { fingerprint, deviceFamily } from '../lib/fingerprint.js';
 import { clientIp } from '../lib/http.js';
 
-const FALLBACK = 'https://www.danielkelleghan.com/';
+// Where a click goes when the destination is missing or malformed. Configurable because every
+// deployment belongs to a different person; the default is deliberately inert rather than
+// somebody else's website.
+const FALLBACK = process.env.TRACKER_FALLBACK_URL || 'https://example.com/';
 
 export default async function handler(req, res) {
   const raw = String(req.query.token || '');
@@ -51,7 +54,8 @@ async function logClick({ req, token, tag, destination }) {
     });
     const fp = fingerprint({ ip, userAgent });
     const nonce = Math.abs((Date.now() ^ destination.length) % 0xffffff).toString(36);
-    await put(eventPath({ day: dayOf(token), token, at, kind: 'click', classification, fingerprint: fp, nonce }),
+    await put(eventPath({ day: dayOf(token), token, at, kind: 'click', classification, fingerprint: fp,
+                          device: deviceFamily(userAgent).replace('|', '~'), nonce }),
               { token, at, kind: 'click', classification, fingerprint: fp, destination, deviceHint: userAgent.slice(0, 120) });
   }
 }

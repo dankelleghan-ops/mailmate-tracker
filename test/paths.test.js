@@ -102,3 +102,19 @@ test('an empty recipient still occupies its path segment', () => {
   assert.equal(back.subject, 'compare');
   assert.equal(back.source, 'apple-mail');
 });
+
+test('the device family rides the pathname and round-trips', () => {
+  const p = eventPath({ day: '2026-08-29', token: '20260829T170258-8zWxTJrxmTq4',
+                        at: '2026-08-29T17:10:07.000Z', kind: 'open', classification: 'human',
+                        fingerprint: '9708e1866d', device: 'ios~safari', nonce: 'q7' });
+  const back = parseEventPath(p);
+  assert.equal(back.device, 'ios|safari');
+  assert.equal(back.fingerprint, '9708e1866d');
+});
+
+test('fingerprint-only events (before device existed) still parse, device null', () => {
+  const legacy = 'ev/2026-08-29/20260829T170258-8zWxTJrxmTq4/20260829T171007000Z__open__human__9708e1866d__q7.json';
+  const back = parseEventPath(legacy);
+  assert.equal(back.fingerprint, '9708e1866d');
+  assert.equal(back.device, null);
+});

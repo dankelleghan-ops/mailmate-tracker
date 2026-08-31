@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Open- and click-tracking endpoint for Daniel Kelleghan's email. Serves the pixel, classifies the fetch, appends the event to a private GitHub repo.",
+  "description": "Self-hosted open- and click-tracking endpoint for MailMate. Serves the pixel, classifies the fetch, appends the event to your own Vercel Blob store.",
   "scripts": {
     "test": "node --test \"test/*.test.js\" \"test/*.test.mjs\""
   }

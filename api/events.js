@@ -81,7 +81,8 @@ export default async function handler(req, res) {
         const e = parseEventPath(b.pathname);
         if (!e) continue;
         const msg = byToken.get(e.token);
-        if (msg) msg.events.push({ at: e.at, kind: e.kind, classification: e.classification, fingerprint: e.fingerprint });
+        if (msg) msg.events.push({ at: e.at, kind: e.kind, classification: e.classification,
+                                   fingerprint: e.fingerprint, device: e.device });
       }
     }
 
