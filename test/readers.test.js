@@ -68,3 +68,37 @@ test('every Gmail reader counts as exactly one unnamed reader, never a number we
 test('a message nobody opened has no readers', () => {
   assert.deepEqual(readersOf({ recipient: 'a@b.com', events: [] }, {}), { named: [], unnamed: 0 });
 });
+
+test('a fingerprint that was ever SELF is never learned, and its human opens become self', () => {
+  const msgs = [
+    // his own Mac, seen as self on one message...
+    { recipientCount: 1, recipient: 'marshall@x.com',
+      events: [{ kind: 'open', classification: 'self', fingerprint: 'mac1' }] },
+    // ...counted human on a one-to-one email after his IP changed (2026-09-02)
+    { recipientCount: 1, recipient: 'caleb@y.com',
+      events: [{ kind: 'open', classification: 'human', fingerprint: 'mac1' }] },
+    // ...and then "named" as Caleb on somebody else's thread
+    { recipientCount: 3, recipient: 'sara@z.com',
+      events: [{ kind: 'open', classification: 'human', fingerprint: 'mac1' }] },
+  ];
+  const out = annotate(msgs);
+  assert.deepEqual(learnProfiles(msgs), {});
+  assert.deepEqual(out[2].readers, { named: [], unnamed: 0 });
+  assert.equal(out[1].events[0].classification, 'self');
+  assert.equal(out[2].events[0].classification, 'self');
+});
+
+test('a fingerprint that opens one-to-one mail to two different people is nobody', () => {
+  const msgs = [
+    { recipientCount: 1, recipient: 'a@x.com',
+      events: [{ kind: 'open', classification: 'human', fingerprint: 'relay' }] },
+    { recipientCount: 1, recipient: 'b@y.com',
+      events: [{ kind: 'open', classification: 'human', fingerprint: 'relay' }] },
+    { recipientCount: 2, recipient: 'c@z.com',
+      events: [{ kind: 'open', classification: 'human', fingerprint: 'relay' }] },
+  ];
+  const out = annotate(msgs);
+  assert.deepEqual(learnProfiles(msgs), {});
+  assert.deepEqual(out[2].readers, { named: [], unnamed: 1 });
+  assert.equal(out[2].events[0].classification, 'human', 'a relay is unnamed, not self');
+});
