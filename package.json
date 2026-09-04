@@ -3,8 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Self-hosted open- and click-tracking endpoint for MailMate. Serves the pixel, classifies the fetch, appends the event to your own Vercel Blob store.",
+  "description": "Self-hosted open- and click-tracking endpoint for MailMate. Serves the pixel, classifies the fetch, and records it in a Cloudflare D1 database.",
   "scripts": {
-    "test": "node --test \"test/*.test.js\" \"test/*.test.mjs\""
+    "test": "node --test \"test/*.test.js\" \"test/*.test.mjs\"",
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy",
+    "schema:local": "wrangler d1 execute mailmate-tracker --local --file=./schema.sql",
+    "schema:remote": "wrangler d1 execute mailmate-tracker --remote --file=./schema.sql",
+    "migrate:generate": "node migrate/from-blob.mjs",
+    "migrate:local": "for f in migrate/data/*.sql; do wrangler d1 execute mailmate-tracker --local --file=\"$f\" || exit 1; done",
+    "migrate:remote": "for f in migrate/data/*.sql; do wrangler d1 execute mailmate-tracker --remote --file=\"$f\" || exit 1; done"
+  },
+  "devDependencies": {
+    "wrangler": "^4.129.0"
   }
 }
