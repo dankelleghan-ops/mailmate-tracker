@@ -10,6 +10,14 @@ person emails and when they read it, and the secret you are about to create is a
 anyone holding it can read every message ever recorded. Never point two people's MailMate (or
 Gmail extension) at the same deployed worker, and never hand your secret to anyone else.
 
+**This is one of three ways to set this up** — see the README's "Set this up" section for all
+three, in the order a person should try them: (1) MailMate's own automatic setup (coming in
+1.37.0 — a free Cloudflare account and one API token, no terminal), (2) this file, followed by
+you or by a person directly, and (3) the "Deploy to Cloudflare" button, which needs a GitHub or
+GitLab account because Cloudflare copies this repository's code into one before it can build and
+redeploy it. Following this file needs neither GitHub nor GitLab — just a Cloudflare account and
+a terminal.
+
 ## What you're deploying
 
 A Cloudflare Worker plus a Cloudflare D1 (SQLite) database. Both are free at ordinary email
@@ -121,6 +129,41 @@ They paste both into:
 
 "Test connection" — or a re-fetch of the address from step 6 — is the confirmation that both
 values were entered correctly.
+
+## Using an API token instead of browser login
+
+Step 1 above (`npx wrangler login`) is a browser-based OAuth flow, and it's the right choice for
+a person following this file interactively. Some situations call for an API token instead — a
+headless environment with no browser to approve in, or a script (this is what MailMate's own
+automatic setup, coming in 1.37.0, will use — it talks to the Cloudflare API directly rather than
+shelling out to `wrangler`). If that's you, create the token first and set it as
+`CLOUDFLARE_API_TOKEN` in the environment before any `wrangler` command; wrangler and the
+Cloudflare API both accept it in place of an interactive login, with no other change to the
+steps above.
+
+Create it at **[dash.cloudflare.com](https://dash.cloudflare.com/) → My Profile → API Tokens →
+Create Token → Create Custom Token**. Researched against Cloudflare's own docs
+(`developers.cloudflare.com/fundamentals/api/reference/permissions/` and
+`.../reference/template/`) because the closest built-in template, **"Edit Cloudflare Workers,"
+does NOT include D1** — a token made from it will log into wrangler fine and then fail the
+moment anything touches the database. Use a custom token with exactly these permissions instead:
+
+| Scope | Permission | Why |
+|---|---|---|
+| Account | **Workers Scripts** — Edit | Upload/update the Worker script itself, and enable the workers.dev subdomain — both are Workers Scripts sub-resources, so this one permission covers both; there is no separate "subdomain" permission group. |
+| Account | **D1** — Edit | Create the database (step 2) and let the Worker read/write it. |
+| Account | **Account Settings** — Read | Read the account ID, which every other call above needs to address the account at all. |
+
+Set **Account Resources** to the one Cloudflare account this token is for — never "All accounts."
+No Zone or User permissions are needed for a workers.dev-only deployment (skip Workers Routes —
+that's for attaching a Worker to a custom domain's zone, not for workers.dev). Give the token an
+expiration if the dashboard offers one; it only needs to exist for the length of this setup.
+
+Cloudflare's dashboard is the source of truth for exact permission names and may present them
+slightly differently by the time you read this — if a listed permission isn't there under that
+exact wording, look for the nearest equivalent (Workers Scripts / D1 / Account Settings, each at
+the Edit or Read level as shown) rather than guessing at a broader one "to be safe." Broader
+tokens are a bigger liability if one ever leaks, not a convenience.
 
 ## What NOT to do
 

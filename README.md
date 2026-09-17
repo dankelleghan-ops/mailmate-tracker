@@ -11,13 +11,48 @@ share a deployment.
 Free to run, on Cloudflare's own free tier (a Worker plus a small D1 database) at ordinary email
 volumes.
 
-## Deploy your own
+## Set this up
+
+Three ways to get your own tracker running. Try them in this order:
+
+### 1. Automatic — MailMate does it for you (coming in MailMate 1.37.0)
+
+You create a free Cloudflare account and one API token; MailMate's Settings → Email Tracking
+does the rest — creates your D1 database, uploads the Worker, sets your secret, and fills in its
+own settings with the resulting address. No terminal, no repository to clone.
+
+Not shipped yet as of this writing — use option 2 or 3 below until it lands, then switch to this
+one for any future updates.
+
+### 2. Let Claude do it (no GitHub account needed)
+
+This works from a plain clone or download of this repository — nothing to sign in to except
+Cloudflare itself. Open a chat with Claude (Claude Code on your own computer, or a claude.ai chat
+with file/computer access) in this project's folder and paste:
+
+> Read CLAUDE.md in this repository and deploy this tracker for me on Cloudflare. I'll approve
+> the Cloudflare login in my browser when you ask; generate a random secret if I don't already
+> have one. When you're done, tell me the tracker address and the secret so I can paste them
+> into MailMate.
+
+It walks through logging into your own Cloudflare account (you approve that step yourself — no
+agent can or should do it for you), creating your database, deploying, and setting your secret.
+[`CLAUDE.md`](./CLAUDE.md) is the exact script it follows — the same steps also work for a
+person to run by hand, one command at a time, no agent required.
+
+### 3. The "Deploy to Cloudflare" button (needs a GitHub or GitLab account)
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/dankelleghan-ops/mailmate-tracker)
 
-Click it, sign in to (or create) a free Cloudflare account, and follow the prompts — Cloudflare
-provisions your own Worker and your own database and asks you for one thing: a secret. If you
-don't have one yet, generate one first:
+**This button needs a GitHub or GitLab account.** Cloudflare's deploy flow works by copying this
+repository's code into an account of yours first — that's what lets it rebuild your copy
+automatically if this project ever pushes an update — so it asks you to sign in with GitHub or
+GitLab before it will provision anything. If you'd rather not create one, use option 1 or 2
+instead; they need nothing beyond a Cloudflare account.
+
+If you do use it: sign in, follow the prompts — Cloudflare provisions your own Worker and your
+own database and asks you for one thing: a secret. If you don't have one yet, generate one
+first:
 
 ```
 openssl rand -hex 24
@@ -36,33 +71,13 @@ Then:
 That's it — no database to create by hand, no schema to run, no environment variables to hunt
 down afterward. The Worker sets up its own tables on its first real request.
 
-### If the button can't ask for your secret
+#### If the button can't ask for your secret
 
 Occasionally Cloudflare's deploy flow finishes without prompting for `TRACKER_SECRET` (it
 depends on how you're deployed). If your new tracker's landing page says **"Secret: NOT SET"**,
 open your Worker in the [Cloudflare dashboard](https://dash.cloudflare.com/) → your Worker →
 **Settings → Variables and Secrets** → **Add** → name it `TRACKER_SECRET`, type **Secret** (not
 Text), paste the value, and save. Reload the landing page to confirm it now says "set ✓".
-
-## Set it up with Claude instead
-
-If you'd rather have an AI agent do the command-line parts, this repository includes
-[`CLAUDE.md`](./CLAUDE.md) — a step-by-step guide written for exactly that. Open a chat with
-Claude (Claude Code on your own computer, or a claude.ai chat with file/computer access) in this
-project's folder and paste:
-
-> Read CLAUDE.md in this repository and deploy this tracker for me on Cloudflare. I'll approve
-> the Cloudflare login in my browser when you ask; generate a random secret if I don't already
-> have one. When you're done, tell me the tracker address and the secret so I can paste them
-> into MailMate.
-
-It walks through logging into your own Cloudflare account (you approve that step yourself — no
-agent can or should do it for you), creating your database, deploying, and setting your secret.
-
-## Doing it entirely by hand
-
-See [`CLAUDE.md`](./CLAUDE.md) — the same seven steps, written to be followed by a person
-directly rather than by an agent. It assumes nothing beyond a terminal and Node.js 20+.
 
 ## Privacy
 
@@ -122,8 +137,37 @@ the moment you do. Update MailMate and the Gmail extension with the new value.
 whole routing table in about a dozen lines — then follow into `handlers/` and `lib/`. Every file
 carries a comment explaining the real bug or platform constraint that shaped it.
 
+## The bundled Worker artifact (`dist/`)
+
+`dist/worker.bundle.js` is `worker.js` plus everything under `handlers/` and `lib/`, folded by
+esbuild into one self-contained ES module — the source, not a rewrite of it. It exists so
+something that isn't running `npm install` and `wrangler deploy` can still deploy this Worker:
+Cloudflare's own "upload a script" API takes one file, and MailMate's automatic setup (option 1
+above) downloads this one straight from GitHub and uploads it as-is.
+
+Alongside it:
+
+- `dist/worker.bundle.sha256` — the bundle's sha256, so a downloader can confirm it got the exact
+  bytes this repository published.
+- `dist/version.json` — everything else an automated uploader needs to know: the compatibility
+  date and flags to deploy with, the D1 binding to create, and which secret to ask for. It's
+  generated from `package.json` and `wrangler.jsonc`, never hand-edited.
+
+Both files are committed on purpose, specifically so they're fetchable at a stable raw GitHub
+URL without a build step on the other end. `npm run build` regenerates them after any change to
+`worker.js`, `handlers/`, or `lib/`; `npm test` fails if the committed copy has drifted from a
+fresh build, so a stale `dist/` can't ship unnoticed.
+
+Nobody following options 2 or 3 above needs to think about this file at all — `wrangler deploy`
+and the Deploy button both build from source the normal way. It matters only for option 1 and
+for anyone else scripting a direct Cloudflare API upload.
+
 ## Tests
 
 ```
 npm test
 ```
+
+`npm run build` regenerates `dist/`; `npm test` includes a check that it's still in sync with
+`worker.js`/`handlers/`/`lib/` (see above), so run `npm run build` first if you've changed any of
+those and want a clean test run.
