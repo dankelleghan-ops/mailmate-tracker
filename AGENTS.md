@@ -11,7 +11,7 @@ anyone holding it can read every message ever recorded. Never point two people's
 Gmail extension) at the same deployed worker, and never hand your secret to anyone else.
 
 **This is one of three ways to set this up** — see the README's "Set this up" section for all
-three, in the order a person should try them: (1) MailMate's own automatic setup (coming in
+three, in the order a person should try them: (1) MailMate's own automatic setup (since
 1.37.0 — a free Cloudflare account and one API token, no terminal), (2) this file, followed by
 you or by a person directly, and (3) the "Deploy to Cloudflare" button, which needs a GitHub or
 GitLab account because Cloudflare copies this repository's code into one before it can build and
@@ -135,7 +135,7 @@ values were entered correctly.
 Step 1 above (`npx wrangler login`) is a browser-based OAuth flow, and it's the right choice for
 a person following this file interactively. Some situations call for an API token instead — a
 headless environment with no browser to approve in, or a script (this is what MailMate's own
-automatic setup, coming in 1.37.0, will use — it talks to the Cloudflare API directly rather than
+automatic setup, since 1.37.0, uses — it talks to the Cloudflare API directly rather than
 shelling out to `wrangler`). If that's you, create the token first and set it as
 `CLOUDFLARE_API_TOKEN` in the environment before any `wrangler` command; wrangler and the
 Cloudflare API both accept it in place of an interactive login, with no other change to the

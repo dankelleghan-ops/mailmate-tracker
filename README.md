@@ -15,14 +15,17 @@ volumes.
 
 Three ways to get your own tracker running. Try them in this order:
 
-### 1. Automatic — MailMate does it for you (coming in MailMate 1.37.0)
+### 1. Automatic — MailMate does it for you (MailMate 1.37.0 and later)
 
 You create a free Cloudflare account and one API token; MailMate's Settings → Email Tracking
 does the rest — creates your D1 database, uploads the Worker, sets your secret, and fills in its
 own settings with the resulting address. No terminal, no repository to clone.
 
-Not shipped yet as of this writing — use option 2 or 3 below until it lands, then switch to this
-one for any future updates.
+In MailMate: Settings → Email Tracking → "Set up my own tracker…". Step 2, "Open the key page",
+opens Cloudflare's token form with the right permissions already chosen — click Continue to
+summary, then Create Token, then Copy — paste the key into MailMate and click "Set it up for
+me". MailMate shows your tracker's address when it is done and can copy the settings for the
+Gmail extension in one click.
 
 ### 2. Let Claude do it (no GitHub account needed)
 
