@@ -1,0 +1,10 @@
+node_modules/
+.vercel
+.env*
+.dev.vars
+node_modules
+.wrangler
+migrate/data/
+.env.vercel
+forwarder/.vercel
+wrangler.daniel.jsonc
