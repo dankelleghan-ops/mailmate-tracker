@@ -8,3 +8,6 @@ migrate/data/
 .env.vercel
 forwarder/.vercel
 wrangler.daniel.jsonc
+
+# local agent worktrees / session state — never publish
+.claude/
